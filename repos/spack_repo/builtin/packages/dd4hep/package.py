@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
+
 from spack_repo.builtin.build_systems.cmake import CMakePackage, generator
 
 from spack.package import *
@@ -229,20 +231,43 @@ class Dd4hep(CMakePackage):
         args.append(self.define("DD4HEP_BUILD_PACKAGES", " ".join(enabled_packages)))
         return args
 
+    @property
+    def library_path_var(self):
+        # DD4HEP plugin lookup mechanism is system-dependent *and* different to
+        # the DD4HEP_LIBRARY_PATH
+        return ("DYLD_LIBRARY_PATH"
+                if self.spec.satisfies("platform=darwin")
+                else "LD_LIBRARY_PATH")
+
+    def setup_dependent_run_environment(self, env: EnvironmentModifications, dependent_spec):
+        try:
+            dep_libs = dependent_spec.package.libs
+        except AttributeError:
+            # Package doesn't define libs
+            dep_lib_dirs = [d for d in [dependent_spec.prefix.lib,
+                            dependent_spec.prefix.lib64]
+                            if os.path.exists(d)]
+        else:
+            dep_lib_dirs = dep_libs.directories
+
+        # DD4HEP requires downstream plugin paths via system-dependent
+        # environment variables
+        for lib_path in dep_lib_dirs:
+            env.prepend_path(self.library_path_var, lib_path)
+
     def setup_run_environment(self, env: EnvironmentModifications) -> None:
         # used p.ex. in ddsim to find DDDetectors dir
         env.set("DD4hepINSTALL", self.prefix)
         env.set("DD4HEP", self.prefix.examples)
         env.set("DD4hep_DIR", self.prefix)
         env.set("DD4hep_ROOT", self.prefix)
-        if len(self.libs.directories) > 0:
-            # Plugin lookup mechanism is system-dependent
-            libvar = (
-                "DYLD_LIBRARY_PATH"
+
+        # Note that this is *not* DYLD_LIBRARY_PATH on macos
+        lib_path_var = ("DD4HEP_LIBRARY_PATH"
                 if self.spec.satisfies("platform=darwin")
-                else "LD_LIBRARY_PATH"
-            )
-            env.prepend_path(libvar, self.libs.directories[0])
+                else "LD_LIBRARY_PATH")
+        for lib_path in self.libs.directories:
+            env.prepend_path(lib_path_var, lib_path)
 
     def url_for_version(self, version):
         # dd4hep releases are dashes and padded with a leading zero

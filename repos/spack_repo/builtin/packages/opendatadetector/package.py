@@ -44,4 +44,4 @@ class Opendatadetector(CMakePackage):
 
     def setup_run_environment(self, env: EnvironmentModifications) -> None:
         env.set("OPENDATADETECTOR_DATA", join_path(self.prefix.share, "OpenDataDetector"))
-        env.prepend_path("LD_LIBRARY_PATH", self.spec["opendatadetector"].libs.directories[0])
+        # Note: *_LIBRARY_PATH needed for DD4HEP plugin is set by dd4hep.setup_dependent_run_environment
