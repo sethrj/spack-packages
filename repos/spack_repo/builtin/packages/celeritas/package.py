@@ -7,6 +7,7 @@ from spack_repo.builtin.build_systems.cuda import CudaPackage
 from spack_repo.builtin.build_systems.rocm import ROCmPackage
 
 from spack.package import *
+from spack.version import GitVersion
 
 
 class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
@@ -25,7 +26,7 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
 
     sanity_check_is_file = ["bin/celer-sim"]
 
-    version("develop", branch="develop", get_full_repo=True)
+    version("develop", branch="develop")
 
     version("0.6.3", sha256="c87910acd0bb9dc85c53e2e4d9958f36d3bb1e5975f0e08fe7274b332a2ccf27")
     version("0.6.2", sha256="efca5a7f4797cd29d2b4e0b2251896b9fe4253ed95ff5c18f4d0476d4c34b48d")
@@ -35,7 +36,9 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     version("0.5.2", sha256="46311c096b271d0331b82c02485ac6bf650d5b0f7bd948fb01aef5058f8824e3")
     version("0.5.1", sha256="182d5466fbd98ba9400b343b55f6a06e03b77daed4de1dd16f632ac0a3620249")
     version("0.5.0", sha256="4a8834224d96fd01897e5872ac109f60d91ef0bd7b63fac05a73dcdb61a5530e")
-    version("0.4.4", sha256="8b5ae63aa2d50c2ecf48d752424e4a33c50c07d9f0f5ca5448246de3286fd836")
+    version("0.4.4",
+            sha256="8b5ae63aa2d50c2ecf48d752424e4a33c50c07d9f0f5ca5448246de3286fd836",
+            deprecated=True)
 
     _cxxstd_values = ("17", "20")
 
@@ -49,6 +52,8 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     )
     variant("covfie", default=False, when="@0.6:", description="Enable covfie magnetic fields")
     variant("debug", default=False, description="Enable runtime debug assertions")
+    variant("dd4hep", default=False, when="@0.7:",
+            description="Build DD4HEP plugin")
     variant("doc", default=False, description="Build and install documentation")
     variant("geant4", default=True, description="Enable Geant4 integration")
     variant("hepmc3", default=True, description="Use HepMC3 I/O interfaces")
@@ -67,6 +72,7 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("cmake@3.27:", type="build", when="+covfie")
 
     depends_on("cli11", when="@0.6:")
+    depends_on("dd4hep", when="+dd4hep")
     depends_on("nlohmann-json")
     depends_on("covfie@0.13:", when="+covfie")
     depends_on("geant4@10.5:11.2", when="@0.4.2:0.4 +geant4")
@@ -94,7 +100,7 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
 
     # Ensure consistent C++ standards
     for _std in _cxxstd_values:
-        for _pkg in ["geant4", "root", "vecgeom"]:
+        for _pkg in ["geant4", "root", "vecgeom", "dd4hep"]:
             depends_on(f"{_pkg} cxxstd={_std}", when=f"+{_pkg} cxxstd={_std}")
         # NOTE: as a private dependency, covfie cxxstd can differ from the
         # celeritas "public" standard
@@ -110,6 +116,9 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     conflicts("+rocm", when="+vecgeom", msg="HIP support is only available with ORANGE")
     for _arch in ["cuda", "rocm"]:
         conflicts("+perfetto", when=f"+{_arch}", msg="Perfetto is only used for CPU profiling")
+
+    requires("+geant4", when="+dd4hep", msg="DD4HEP support requires Geant4")
+    requires("+root", when="+dd4hep", msg="DD4HEP support requires ROOT")
 
     # geant4@11.3.0 now returns const G4Element::GetElementTable()
     patch(
@@ -136,12 +145,16 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
             from_variant("CELERITAS_USE_HIP", "rocm"),
             define("CELERITAS_USE_MPI", False),
             define("CELERITAS_USE_Python", True),
+            # Supply version metadata in case of shallow clones
+            define("Celeritas_VERSION", self.spec.version.up_to(3).dotted_numeric_string),
+            define("Celeritas_VERSION_STRING", str(self.spec.version)),
         ]
 
         # NOTE: package names are stylized like the dependency asks: Find{pkg}.cmake
         for pkg in [
             "covfie",
             "CUDA",
+            "DD4hep",
             "Geant4",
             "HepMC3",
             "OpenMP",
@@ -183,3 +196,8 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
             # NOTE: Perfetto is always vendored!
 
         return args
+
+    def setup_run_environment(self, env: EnvironmentModifications) -> None:
+        if self.spec.satisfies("+dd4hep"):
+            # Allow lookup with examples
+            env.set("Celeritas_ROOT", self.prefix)
