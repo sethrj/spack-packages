@@ -147,7 +147,7 @@ class Vecgeom(CMakePackage, CudaPackage):
 
         if int(spec.variants["cxxstd"].value) >= 20:
             # Some clang installations (basic ubuntu 24, for example) fail with
-            # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors due to missing 
+            # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors due to missing
             # clang-scan-deps tool. VecGeom doesn't currently use C++20
             # modules, so we just disable it.
             # It's not clear why this package in particular requires it...
