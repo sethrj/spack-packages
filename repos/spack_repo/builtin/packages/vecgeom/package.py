@@ -145,13 +145,6 @@ class Vecgeom(CMakePackage, CudaPackage):
             from_variant(prefix + "ROOT", "root"),
         ]
 
-        if int(spec.variants["cxxstd"].value) >= 20 and spec.satisfies("generator=ninja"):
-            # Some clang installations (vanilla Ubuntu 24's clang-18) fail with
-            # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors due to missing
-            # clang-scan-deps tool. VecGeom doesn't currently use C++20
-            # modules, so we just disable it.
-            args.append(define("CMAKE_CXX_SCAN_FOR_MODULES", False))
-
         if spec.satisfies("@1.1.19:"):
             args.append(from_variant("VECGEOM_ENABLE_CUDA", "cuda"))
             if "+cuda" in spec:
@@ -178,5 +171,12 @@ class Vecgeom(CMakePackage, CudaPackage):
                     define("GDMLTESTING", build_tests and "+gdml" in spec),
                 ]
             )
+
+        # When building with C++20 and Ninja, clang installations that
+        # lack clang-scan-deps (e.g., vanilla Ubuntu 24's clang-18) fail with
+        # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors.
+        # VecGeom doesn't currently use C++20 modules, so we just disable
+        # this capability.
+        args.append(define("CMAKE_CXX_SCAN_FOR_MODULES", False))
 
         return args

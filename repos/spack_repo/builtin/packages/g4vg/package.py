@@ -36,7 +36,6 @@ class G4vg(CMakePackage):
     depends_on("geant4")
 
     def cmake_args(self):
-        spec = self.spec
         define = self.define
         from_variant = self.define_from_variant
         args = [
@@ -45,13 +44,11 @@ class G4vg(CMakePackage):
             define("G4VG_BUILD_TESTS", False),
         ]
 
-        if spec.satisfies("generator=ninja") and any(
-            int(spec[pkg].variants["cxxstd"].value) >= 20 for pkg in ["vecgeom", "geant4"]
-        ):
-            # Some clang installations (vanilla Ubuntu 24's clang-18) fail with
-            # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors due to missing
-            # clang-scan-deps tool. VecGeom doesn't currently use C++20
-            # modules, so we just disable it.
-            args.append(define("CMAKE_CXX_SCAN_FOR_MODULES", False))
+        # When building with C++20 and Ninja, clang installations that
+        # lack clang-scan-deps (e.g., vanilla Ubuntu 24's clang-18) fail with
+        # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors.
+        # G4VG doesn't currently use C++20 modules, so we just disable
+        # this capability.
+        args.append(define("CMAKE_CXX_SCAN_FOR_MODULES", False))
 
         return args
