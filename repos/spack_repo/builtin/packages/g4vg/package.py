@@ -36,6 +36,7 @@ class G4vg(CMakePackage):
     depends_on("geant4")
 
     def cmake_args(self):
+        spec = self.spec
         define = self.define
         from_variant = self.define_from_variant
         args = [
@@ -43,5 +44,14 @@ class G4vg(CMakePackage):
             from_variant("G4VG_DEBUG", "debug"),
             define("G4VG_BUILD_TESTS", False),
         ]
+
+        if spec.satisfies("generator=ninja") and any(
+            int(spec[pkg].variants["cxxstd"].value) >= 20 for pkg in ["vecgeom", "geant4"]
+        ):
+            # Some clang installations (vanilla Ubuntu 24's clang-18) fail with
+            # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors due to missing
+            # clang-scan-deps tool. VecGeom doesn't currently use C++20
+            # modules, so we just disable it.
+            args.append(define("CMAKE_CXX_SCAN_FOR_MODULES", False))
 
         return args

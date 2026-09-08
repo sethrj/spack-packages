@@ -145,12 +145,11 @@ class Vecgeom(CMakePackage, CudaPackage):
             from_variant(prefix + "ROOT", "root"),
         ]
 
-        if int(spec.variants["cxxstd"].value) >= 20:
-            # Some clang installations (basic ubuntu 24, for example) fail with
+        if int(spec.variants["cxxstd"].value) >= 20 and spec.satisfies("generator=ninja"):
+            # Some clang installations (vanilla Ubuntu 24's clang-18) fail with
             # CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND errors due to missing
             # clang-scan-deps tool. VecGeom doesn't currently use C++20
             # modules, so we just disable it.
-            # It's not clear why this package in particular requires it...
             args.append(define("CMAKE_CXX_SCAN_FOR_MODULES", False))
 
         if spec.satisfies("@1.1.19:"):
