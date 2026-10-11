@@ -48,7 +48,7 @@ class PySphinxcontribBibtex(PythonPackage):
         depends_on("py-sphinx@1.0:", when="@:1")
         depends_on("py-sphinx@2.0:", when="@2.0.0:2.0")
         depends_on("py-sphinx@2.1:", when="@2.1.3:2.5")
-        depends_on("py-sphinx@3.5:", when="@2.6.5::2.6")
+        depends_on("py-sphinx@3.5:", when="@2.6.5:2.6")
         depends_on("py-sphinx@7.5:", when="@2.7.0:")
 
         depends_on("py-oset@0.1.3:", when="@:2.0.0")
