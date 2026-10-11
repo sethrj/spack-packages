@@ -30,7 +30,10 @@ class PySphinxcontribBibtex(PythonPackage):
         depends_on("python@3.6:", when="@2:2.6")
         depends_on("python@3.10:", when="@2.7.0:")
 
-        depends_on("py-latexcodec@0.3.0:", when="@:0.3.6")
+        depends_on("py-importlib-metadata@3.6:", when="@2.5.0:2.6 ^python@:3.9")
+
+        depends_on("py-six@1.4.1:", when="@0.3.5")
+        depends_on("py-latexcodec@0.3.0:", when="@0.3.5")
 
         depends_on("py-pybtex@0.17:", when="@:1")
         depends_on("py-pybtex@0.20:", when="@2:2.3")
@@ -41,8 +44,6 @@ class PySphinxcontribBibtex(PythonPackage):
         depends_on("py-pybtex-docutils@0.2.2:", when="@2:")
         depends_on("py-pybtex-docutils@1.0.0:", when="@2.2:2.6")
         depends_on("py-pybtex-docutils@1.0.2:", when="@2.7.0:")
-
-        depends_on("py-six@1.4.1:", when="@0.3.5")
 
         depends_on("py-sphinx@1.0:", when="@:1")
         depends_on("py-sphinx@2.0:", when="@2.0.0:2.0")
@@ -55,7 +56,6 @@ class PySphinxcontribBibtex(PythonPackage):
         depends_on("py-docutils@0.8:", when="@2.1.0:2.6")
         depends_on("py-docutils@0.20:", when="@2.7.0:")
 
-        depends_on("py-importlib-metadata@3.6:", when="@2.5.0: ^python@:3.9")
 
     conflicts("^py-docutils@0.18:0.19", when="@2.6.5")
 
