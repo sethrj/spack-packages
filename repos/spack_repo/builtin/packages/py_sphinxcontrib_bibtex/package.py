@@ -12,6 +12,7 @@ class PySphinxcontribBibtex(PythonPackage):
 
     pypi = "sphinxcontrib-bibtex/sphinxcontrib-bibtex-0.3.5.tar.gz"
 
+    version("2.7.0", sha256="fee700f7aae29bb8f654c62913f00d34ac44fc0b8ca0fa67ac922ff4453addee")
     version("2.6.5", sha256="9b3224dd6fece9268ebd8c905dc0a83ff2f6c54148a9235fe70e9d1e9ff149c0")
     version("2.5.0", sha256="71b42e5db0e2e284f243875326bf9936aa9a763282277d75048826fef5b00eaa")
     version("2.4.2", sha256="65b023ee47f35f1f03ac4d71c824e67c624c7ecac1bb26e83623271a01f9da86")
@@ -24,6 +25,7 @@ class PySphinxcontribBibtex(PythonPackage):
 
     depends_on("python@3.5:", type=("build", "run"), when="@1:")
     depends_on("python@3.6:", type=("build", "run"), when="@2:")
+    depends_on("python@3.10:", type=("build", "run"), when="@2.7.0:")
     depends_on("py-setuptools", type="build")
     depends_on("py-latexcodec@0.3.0:", type=("build", "run"), when="@:0.3.6")
     depends_on("py-pybtex@0.17:", type=("build", "run"), when="@:1")
@@ -33,13 +35,16 @@ class PySphinxcontribBibtex(PythonPackage):
     depends_on("py-pybtex-docutils@0.2.0:", type=("build", "run"), when="@:1")
     depends_on("py-pybtex-docutils@0.2.2:", type=("build", "run"), when="@2:")
     depends_on("py-pybtex-docutils@1.0.0:", type=("build", "run"), when="@2.2:")
+    depends_on("py-pybtex-docutils@1.0.2:", type=("build", "run"), when="@2.7.0:")
     depends_on("py-six@1.4.1:", type=("build", "run"), when="@0.3.5")
     depends_on("py-sphinx@1.0:", type=("build", "run"), when="@:1")
     depends_on("py-sphinx@2.0:", type=("build", "run"), when="@2.0.0:")
     depends_on("py-sphinx@2.1:", type=("build", "run"), when="@2.1.3:")
     depends_on("py-sphinx@3.5:", type=("build", "run"), when="@2.6.5:")
+    depends_on("py-sphinx@7.5:", type=("build", "run"), when="@2.7.0:")
     depends_on("py-oset@0.1.3:", type=("build", "run"), when="@:2.0.0")
     depends_on("py-docutils@0.8:", type=("build", "run"), when="@2.1.0:")
+    depends_on("py-docutils@0.20:", type=("build", "run"), when="@2.7.0:")
     depends_on("py-importlib-metadata@3.6:", when="@2.5.0: ^python@:3.9", type=("build", "run"))
 
     conflicts("^py-docutils@0.18:0.19", when="@2.6.5")
