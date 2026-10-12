@@ -144,7 +144,8 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
         return [
             "covfie",
             "CUDA",
-            "DD4hepGeant4",
+            "DD4hep",
+            "Geant4",
             "HepMC3",
             "OpenMP",
             "Perfetto",
@@ -158,13 +159,12 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
         from_variant = self.define_from_variant
         args = [
             from_variant("BUILD_SHARED_LIBS", "shared"),
+            from_variant("CMAKE_CXX_STANDARD", "cxxstd"),
             from_variant("CELERITAS_DEBUG", "debug"),
             from_variant("CELERITAS_BUILD_DOCS", "doc"),
-            define("CELERITAS_BUILD_DEMOS", False),
             define("CELERITAS_BUILD_TESTS", False),
             from_variant("CELERITAS_USE_HIP", "rocm"),
             define("CELERITAS_USE_MPI", False),
-            define("CELERITAS_USE_Python", True),
         ]
 
         # NOTE: package names are stylized like the dependency asks: Find{pkg}.cmake
@@ -190,14 +190,24 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
             # Explicitly activate JSON for older versions
             args.append(define("CELERITAS_USE_JSON", True))
 
+        if self.spec.satisfies("@:0.6"):
+            args.extend([
+                define("CELERITAS_BUILD_DEMOS", False),
+                define("CELERITAS_USE_Python", True),
+            ])
+
         if self.spec.satisfies("@0.6:"):
             # Protect against accidentally using vendored instead of spack
             args.extend(
-                (
                     define(f"CELERITAS_BUILTIN_{pkg}", False)
                     for pkg in ["covfie", "CLI11", "GTest", "nlohmann_json", "G4VG"]
-                )
             )
             # NOTE: Perfetto is always vendored!
 
         return args
+
+    @when("+dd4hep")
+    def setup_run_environment(self, env: EnvironmentModifications) -> None:
+        env.set("Celeritas_ROOT", self.prefix)
+        env.prepend_path(self.spec["dd4hep"].package.plugin_path_var,
+                         self.spec["celeritas"].libs.directories[0])
