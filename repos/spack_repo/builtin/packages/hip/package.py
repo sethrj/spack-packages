@@ -83,7 +83,7 @@ class Hip(ROCmLibrary, CMakePackage):
     test_requires_compiler = True
 
     with when("+rocm"):
-        depends_on("gl@4.5:")
+        #depends_on("gl@4.5:")
         depends_on("py-cppheaderparser", type="build")
         depends_on("libx11", when="+asan")
         depends_on("xproto", when="+asan")
