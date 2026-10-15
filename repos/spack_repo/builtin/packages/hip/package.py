@@ -91,7 +91,7 @@ class Hip(ROCmLibrary, CMakePackage):
         depends_on("py-cppheaderparser", type="build")
         depends_on("libx11", when="+asan")
         depends_on("xproto", when="+asan")
-        depends_on("numactl") # required by rocr-runtime
+        depends_on("numactl")  # required by rocr-runtime
 
         for ver in [
             "5.7.0",
