@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage
+from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage, define
 from spack_repo.builtin.build_systems.cuda import CudaPackage
 from spack_repo.builtin.build_systems.rocm import ROCmPackage
 
@@ -50,13 +50,6 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     _cxxstd_values = ("17", "20")
 
     # Note: cuda and rocm variants are defined by mixin classes
-    variant(
-        "cxxstd",
-        default="17",
-        values=_cxxstd_values,
-        multi=False,
-        description="C++ standard version",
-    )
     variant("covfie", default=True, when="@0.6:", description="Enable covfie magnetic fields")
     variant("debug", default=False, description="Enable runtime debug assertions")
     variant("dd4hep", default=False, when="@0.7:", description="Enable dd4hep plugin")
@@ -69,6 +62,39 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     variant("shared", default=True, description="Build shared libraries")
     variant("swig", default=False, when="@:0.4", description="Generate SWIG Python bindings")
     variant("vecgeom", default=True, description="Use VecGeom geometry")
+
+    # Multi-value variants
+    variant(
+        "cxxstd",
+        default="17",
+        values=_cxxstd_values,
+        multi=False,
+        description="C++ standard version",
+    )
+    variant(
+        "real_type",
+        default="double",
+        values=("double", "float"),
+        multi=False,
+        when="@0.4:",
+        description="Floating point precision",
+    )
+    variant(
+        "reseed",
+        default="trackslot",
+        values=("trackslot", "track"),
+        multi=False,
+        when="@0.7:",
+        description="Reproducibility strategy for RNG seeding",
+    )
+    variant(
+        "units",
+        default="clhep",  # Match Geant4 by default
+        values=("cgs", "clhep", "si"),
+        multi=False,
+        when="@0.5:",
+        description="Native unit system",
+    )
 
     depends_on("cxx", type="build")
 
@@ -193,35 +219,49 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
         return result
 
     def cmake_args(self):
-        define = self.define
         from_variant = self.define_from_variant
         args = [
             from_variant("BUILD_SHARED_LIBS", "shared"),
             from_variant("CMAKE_CXX_STANDARD", "cxxstd"),
             from_variant("CELERITAS_DEBUG", "debug"),
             from_variant("CELERITAS_BUILD_DOCS", "doc"),
-            define("CELERITAS_BUILD_TESTS", self.run_tests),
+            from_variant("CELERITAS_REAL_TYPE", "real_type"),
+            from_variant("CELERITAS_RESEED", "reseed"),
         ]
+
+        def append_celer_arg(ext: str, value):
+            args.append(self.define("CELERITAS_" + ext, value))
+
+        append_celer_arg("BUILD_TESTS", self.run_tests)
+        if self.spec.satisfies("@0.5:"):
+            # Units need special casing due to uppercase:
+            units = self.spec.variants["units"].value
+            # Set e.g., -DCELERITAS_UNITS:STRING=CLHEP
+            append_celer_arg("UNITS", units.upper())
+
         if self.spec.satisfies("@0.6:"):
             # Always build app front ends and celer-config
-            args.append(self.define("CELERITAS_BUILD_APPS", True))
+            append_celer_arg("BUILD_APPS", True)
 
         if self.spec.satisfies("@:0.6"):
             # Never build old example apps
-            args.append(self.define("CELERITAS_BUILD_DEMOS", False))
+            append_celer_arg("BUILD_DEMOS", False)
 
         # Get list of CMake packages and construct from spack variants
         for pkg in sorted(self.celer_variant_packages()):
-            args.append(
-                from_variant("CELERITAS_USE_" + pkg,
-                             self.celer_package_to_variant(pkg)),
-            )
+            variant = self.celer_package_to_variant(pkg)
+            if not self.has_variant(variant):
+                raise KeyError(f'Invalid variant "{variant}"')
+            value = self.spec.variants[variant].value
+            append_celer_arg("USE_" + pkg, value)
+
         # Set list of always-off or -on packages
-        for pkg, val in sorted(self.celer_force_packages().items()):
-            args.append(define("CELERITAS_USE_" + pkg, val))
+        for pkg, value in sorted(self.celer_force_packages().items()):
+            append_celer_arg("USE_" + pkg, value)
 
         if self.spec.satisfies("+cuda"):
             args.append(CMakeBuilder.define_cuda_architectures(self))
+
         if self.spec.satisfies("+rocm"):
             args.append(CMakeBuilder.define_hip_architectures(self))
             # TODO: update celeritas CMakeLists to link to these if found
@@ -242,7 +282,7 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
 
         for pkg in builtin_packages:
             # Protect against accidentally using vendored instead of spack
-            args.append(define(f"CELERITAS_BUILTIN_{pkg}", False))
+            append_celer_arg(f"BUILTIN_{pkg}", False)
 
         return args
 
