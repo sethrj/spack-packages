@@ -7,6 +7,7 @@ from spack_repo.builtin.build_systems.cuda import CudaPackage
 from spack_repo.builtin.build_systems.rocm import ROCmPackage
 
 from spack.package import *
+from typing import Dict, Set
 
 
 class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
@@ -146,22 +147,49 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
         when="@:0.6.2 +cuda ^cuda@13:",
     )
 
-    def celeritas_use_list(self) -> List[str]:
-        """This is extensible so that downstream subclasses (FNAL spack) can add
-        other packages that mainstream Spack does not know about.
+    def celer_variant_packages(self) -> Set[str]:
+        """List user-configurable package names using `find_package` capitalization.
+        This can be subclassed by HEP experiment-specific versions of this package.
         """
-        return [
-            "covfie",
+        result = {
             "CUDA",
             "DD4hep",
             "Geant4",
             "HepMC3",
+            "HIP",
             "OpenMP",
             "Perfetto",
             "ROOT",
-            "SWIG",
             "VecGeom",
-        ]
+        }
+        version = self.spec.version
+        if version >= Version("0.6"):
+            result.add("covfie")
+
+        if version >= Version("0.7"):
+            result.add("DD4hep")
+
+        if version < Version("0.5"):
+            result.add("SWIG")
+
+        return result
+
+    def celer_package_to_variant(self, package_name: str) -> str:
+        """Return the variant name corresponding to a package."""
+        if package_name == "HIP":
+            return "rocm"
+        return package_name.lower()
+
+    def celer_force_packages(self) -> Dict[str, bool]:
+        """List packages that are always disabled/enabled and have no variant."""
+        result = {"LArSoft": False, "MPI": False}
+        if self.spec.satisfies("@:0.4"):
+            # Explicitly activate JSON for older versions
+            result["JSON"] = True
+        if self.spec.satisfies("@:0.6"):
+            # Explicitly activate Python: automatic for newer version
+            result["Python"] = True
+        return result
 
     def cmake_args(self):
         define = self.define
@@ -172,48 +200,48 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
             from_variant("CELERITAS_DEBUG", "debug"),
             from_variant("CELERITAS_BUILD_DOCS", "doc"),
             define("CELERITAS_BUILD_TESTS", False),
-            from_variant("CELERITAS_USE_HIP", "rocm"),
-            define("CELERITAS_USE_MPI", False),
         ]
+        if self.spec.satisfies("@0.6:"):
+            # Always build app front ends and celer-config
+            args.append(self.define("CELERITAS_BUILD_APPS", True))
 
-        # NOTE: package names are stylized like the dependency asks: Find{pkg}.cmake
-        for pkg in self.celeritas_use_list():
-            args.append(from_variant("CELERITAS_USE_" + pkg, pkg.lower()))
+        if self.spec.satisfies("@:0.6"):
+            # Never build old example apps
+            args.append(self.define("CELERITAS_BUILD_DEMOS", False))
+
+        # Get list of CMake packages and construct from spack variants
+        for pkg in sorted(self.celer_variant_packages()):
+            args.append(
+                from_variant("CELERITAS_USE_" + pkg,
+                             self.celer_package_to_variant(pkg)),
+            )
+        # Set list of always-off or -on packages
+        for pkg, val in sorted(self.celer_force_packages().items()):
+            args.append(define("CELERITAS_USE_" + pkg, val))
 
         if self.spec.satisfies("+cuda"):
             args.append(CMakeBuilder.define_cuda_architectures(self))
         if self.spec.satisfies("+rocm"):
             args.append(CMakeBuilder.define_hip_architectures(self))
             # TODO: update celeritas CMakeLists to link to these if found
-            rocm_pkg_list = ["hiprand", "rocprim", "rocrand", "rocthrust"]
-            if self.spec.satisfies("@0.7:"):
-                rocm_pkg_list.append("hipcub")
             args.append(
                 define(
                     "CMAKE_HIP_FLAGS",
-                    " ".join([f"-I{self.spec[p].prefix.include}" for p in rocm_pkg_list]),
+                    " ".join([
+                        f"-I{self.spec[p].prefix.include}"
+                        for p in ["hiprand", "rocprim", "rocrand", "rocthrust"]
+                    ]),
                 )
             )
 
-        if self.spec.satisfies("@:0.4"):
-            # Explicitly activate JSON for older versions
-            args.append(define("CELERITAS_USE_JSON", True))
-
-        if self.spec.satisfies("@:0.6"):
-            args.extend(
-                [
-                    define("CELERITAS_BUILD_DEMOS", False),
-                    define("CELERITAS_USE_Python", True),
-                ]
-            )
-
+        builtin_packages = []
         if self.spec.satisfies("@0.6:"):
+            # NOTE: Perfetto is always vendored so must be omitted
+            builtin_packages += ["covfie", "CLI11", "GTest", "nlohmann_json", "G4VG"]
+
+        for pkg in builtin_packages:
             # Protect against accidentally using vendored instead of spack
-            args.extend(
-                define(f"CELERITAS_BUILTIN_{pkg}", False)
-                for pkg in ["covfie", "CLI11", "GTest", "nlohmann_json", "G4VG"]
-            )
-            # NOTE: Perfetto is always vendored!
+            args.append(define(f"CELERITAS_BUILTIN_{pkg}", False))
 
         return args
 
