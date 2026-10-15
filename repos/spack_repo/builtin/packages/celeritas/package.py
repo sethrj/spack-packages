@@ -85,6 +85,7 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("swig@4.1:", when="+swig")
 
     depends_on("python", when="@:0.5", type="build")
+    depends_on("googletest", type="test")
     depends_on("python", type="test")
 
     with default_args(when="+doc", type="build"):
@@ -199,7 +200,7 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
             from_variant("CMAKE_CXX_STANDARD", "cxxstd"),
             from_variant("CELERITAS_DEBUG", "debug"),
             from_variant("CELERITAS_BUILD_DOCS", "doc"),
-            define("CELERITAS_BUILD_TESTS", False),
+            define("CELERITAS_BUILD_TESTS", self.run_tests),
         ]
         if self.spec.satisfies("@0.6:"):
             # Always build app front ends and celer-config
