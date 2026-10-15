@@ -161,6 +161,20 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
     for _arch in ["cuda", "rocm"]:
         conflicts("+perfetto", when=f"+{_arch}", msg="Perfetto is only used for CPU profiling")
 
+    conflicts(
+        "+vecgeom",
+        when="real_type=float",
+        msg="VecGeom is not currently compatible with single-precision",
+    )
+
+    # Fix ORANGE with CLHEP for 0.7.0
+    for _units in ["clhep", "si"]:
+        patch(
+            "https://github.com/celeritas-project/celeritas/commit/515b365e2de4c43b081bc7749612c5daacba2f9b.patch?full_index=1",
+            sha256="fefa84f9a95d596382a70a21c1375db7e08765646f99ec2a40f0ff2ba6875c09",
+            when=f"@:0.7.0 ~vecgeom units={_units}",
+        )
+
     # geant4@11.3.0 now returns const G4Element::GetElementTable()
     patch(
         "https://github.com/celeritas-project/celeritas/commit/3c8ed9614fc695fba35e8a058bedb7bc1556f71c.patch?full_index=1",
