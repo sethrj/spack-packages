@@ -155,7 +155,6 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
         for _arch in CudaPackage.cuda_arch_values:
             depends_on(f"{_pkg} cuda_arch={_arch}", when=f"+{_pkg} cuda_arch={_arch}")
 
-    conflicts("+rocm ^hip@:5", when="@0.7:", msg="HIP API inconsistency: to be patched shortly")
     conflicts("+rocm", when="+cuda", msg="AMD and NVIDIA accelerators are incompatible")
     conflicts("+rocm", when="+vecgeom", msg="HIP support is only available with ORANGE")
     for _arch in ["cuda", "rocm"]:
@@ -165,6 +164,13 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
         "+vecgeom",
         when="real_type=float",
         msg="VecGeom is not currently compatible with single-precision",
+    )
+
+    # Fix HIP for 0.7.0
+    patch(
+        "https://github.com/celeritas-project/celeritas/commit/0000000000000000000000000000000000000000.patch?full_index=1",
+        sha256="0000000000000000000000000000000000000000000000000000000000000000",
+        when=f"@0.7.0 +rocm",
     )
 
     # Fix ORANGE with CLHEP for 0.7.0
