@@ -160,8 +160,8 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
 
     # Fix HIP for 0.7.0
     patch(
-        "https://github.com/celeritas-project/celeritas/commit/0000000000000000000000000000000000000000.patch?full_index=1",
-        sha256="0000000000000000000000000000000000000000000000000000000000000000",
+        "https://github.com/celeritas-project/celeritas/commit/8cd7fbf495e2e73c35bece489cd8dbd6026de997.patch?full_index=1",
+        sha256="b67f42f79f78be32a8c77187733682ea8045dd42a4be36e6a526749bbc608f86",
         when=f"@0.7.0 +rocm",
     )
 
