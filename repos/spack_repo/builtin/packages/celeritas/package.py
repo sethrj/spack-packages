@@ -80,14 +80,6 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
         description="Floating point precision",
     )
     variant(
-        "reseed",
-        default="trackslot",
-        values=("trackslot", "track"),
-        multi=False,
-        when="@0.7:",
-        description="Reproducibility strategy for RNG seeding",
-    )
-    variant(
         "units",
         default="clhep",  # Match Geant4 by default
         values=("cgs", "clhep", "si"),
@@ -246,7 +238,6 @@ class Celeritas(CMakePackage, CudaPackage, ROCmPackage):
             from_variant("CELERITAS_DEBUG", "debug"),
             from_variant("CELERITAS_BUILD_DOCS", "doc"),
             from_variant("CELERITAS_REAL_TYPE", "real_type"),
-            from_variant("CELERITAS_RESEED", "reseed"),
         ]
 
         def append_celer_arg(ext: str, value):
