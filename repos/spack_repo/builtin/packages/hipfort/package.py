@@ -53,6 +53,7 @@ class Hipfort(ROCmLibrary, CMakePackage):
 
     depends_on("c", type="build")
     depends_on("cxx", type="build")
+    depends_on("fortran", type="build")
     depends_on("cmake@3.18:", type="build", when="@7.0:")
     depends_on("cmake@3.5:", type="build", when="@6.3:6.4")
     depends_on("cmake@3.0.2:", type="build")

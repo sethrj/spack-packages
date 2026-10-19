@@ -79,6 +79,7 @@ class Hipblas(ROCmLibrary, CMakePackage, CudaPackage, ROCmPackage):
 
     depends_on("c", type="build")  # generated
     depends_on("cxx", type="build")
+    depends_on("fortran", type="build")
 
     depends_on("cmake@3.5:", type="build")
 
